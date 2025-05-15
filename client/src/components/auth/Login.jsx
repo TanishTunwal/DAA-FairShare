@@ -17,34 +17,31 @@ const Login = () => {
 
     const onChange = e => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
-
-    const onSubmit = async e => {
+    }; const onSubmit = async e => {
         e.preventDefault();
 
         try {
+            // Configure axios to send cookies with request
+            axios.defaults.withCredentials = true;
+
             const res = await axios.post('/users/login', {
                 email,
                 password
             });
 
-            // Save token to localStorage
-            localStorage.setItem('token', res.data.token);
-
-            // Set auth token header
-            axios.defaults.headers.common['x-auth-token'] = res.data.token;
-
-            // Get user data
-            const userRes = await axios.get('/users/profile');
-
             // Set user and auth state
-            setUser(userRes.data);
+            setUser(res.data.user);
             setIsAuthenticated(true);
 
         } catch (err) {
-            setError(err.response.data.message || 'Login failed');
-            console.error('Login error:', err.response.data);
+            setError(err.response?.data?.message || 'Login failed');
+            console.error('Login error:', err.response?.data);
         }
+    };
+
+    // Google OAuth login
+    const handleGoogleLogin = () => {
+        window.location.href = 'http://localhost:5000/api/users/auth/google';
     };
 
     // Redirect if authenticated
@@ -57,9 +54,7 @@ const Login = () => {
             <h1>Sign In</h1>
             <p>Sign Into Your Account</p>
 
-            {error && <div className="alert alert-danger">{error}</div>}
-
-            <form onSubmit={onSubmit}>
+            {error && <div className="alert alert-danger">{error}</div>}            <form onSubmit={onSubmit}>
                 <div className="form-group">
                     <input
                         type="email"
@@ -83,6 +78,17 @@ const Login = () => {
                 </div>
                 <input type="submit" className="btn btn-primary" value="Login" />
             </form>
+
+            <div className="oauth-section" style={{ marginTop: '20px' }}>
+                <button
+                    onClick={handleGoogleLogin}
+                    className="btn btn-danger"
+                    style={{ width: '100%' }}
+                >
+                    Login with Google
+                </button>
+            </div>
+
             <p className="my-1">
                 Don't have an account? <Link to="/register">Sign Up</Link>
             </p>

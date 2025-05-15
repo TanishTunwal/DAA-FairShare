@@ -4,6 +4,8 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const http = require('http');
 const { Server } = require('socket.io');
+const session = require('express-session');
+const passport = require('passport');
 
 // Import routes
 const userRoutes = require('./routes/users');
@@ -13,13 +15,33 @@ const expenseRoutes = require('./routes/expenses');
 // Load environment variables
 dotenv.config();
 
+// Configure passport
+require('./config/passport');
+
 // Initialize Express app
 const app = express();
 const server = http.createServer(app);
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    credentials: true
+}));
 app.use(express.json());
+
+// Session middleware
+app.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+}));
+
+// Initialize passport
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/expense-sharing-daa')

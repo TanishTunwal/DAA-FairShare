@@ -1,6 +1,9 @@
 <<<<<<< HEAD
+
 # FairShareProject
+
 =======
+
 # Expense Sharing DAA Project
 
 A full-stack expense sharing application built with the MERN stack (MongoDB, Express, React, Node.js) that uses graph algorithms to optimize expense settlements.
@@ -35,7 +38,7 @@ This project implements several graph algorithms for expense management:
 - Express.js
 - MongoDB with Mongoose
 - Socket.io for real-time updates
-- JWT for authentication
+- Passport.js with OAuth 2.0 for authentication
 
 ### Frontend
 
@@ -72,7 +75,10 @@ This project implements several graph algorithms for expense management:
    PORT=5000
    MONGO_URI=mongodb://localhost:27017/expense-sharing-daa
    CLIENT_URL=http://localhost:5173
-   JWT_SECRET=your_jwt_secret_key
+   SERVER_URL=http://localhost:5000
+   GOOGLE_CLIENT_ID=your_google_client_id
+   GOOGLE_CLIENT_SECRET=your_google_client_secret
+   SESSION_SECRET=your_session_secret_key
    ```
 
 4. Start the server:
@@ -138,5 +144,7 @@ expense-sharing-daa/
 ## License
 
 This project is licensed under the MIT License.
->>>>>>> 6646078 (FairShare)
+
+> > > > > > > 6646078 (FairShare)
+
 # DAA-FairShare

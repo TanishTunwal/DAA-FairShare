@@ -19,9 +19,7 @@ const Register = () => {
 
     const onChange = e => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
-
-    const onSubmit = async e => {
+    }; const onSubmit = async e => {
         e.preventDefault();
 
         // Validate passwords match
@@ -31,29 +29,28 @@ const Register = () => {
         }
 
         try {
+            // Configure axios to send cookies with request
+            axios.defaults.withCredentials = true;
+
             const res = await axios.post('/users/register', {
                 name,
                 email,
                 password
             });
 
-            // Save token to localStorage
-            localStorage.setItem('token', res.data.token);
-
-            // Set auth token header
-            axios.defaults.headers.common['x-auth-token'] = res.data.token;
-
-            // Get user data
-            const userRes = await axios.get('/users/profile');
-
-            // Set user and auth state
-            setUser(userRes.data);
+            // Set user and auth state directly from response
+            setUser(res.data.user);
             setIsAuthenticated(true);
 
         } catch (err) {
-            setError(err.response.data.message || 'Registration failed');
-            console.error('Registration error:', err.response.data);
+            setError(err.response?.data?.message || 'Registration failed');
+            console.error('Registration error:', err.response?.data);
         }
+    };
+
+    // Google OAuth registration
+    const handleGoogleSignup = () => {
+        window.location.href = 'http://localhost:5000/api/users/auth/google';
     };
 
     // Redirect if authenticated
@@ -110,9 +107,19 @@ const Register = () => {
                         minLength="6"
                         required
                     />
-                </div>
-                <input type="submit" className="btn btn-primary" value="Register" />
+                </div>                <input type="submit" className="btn btn-primary" value="Register" />
             </form>
+
+            <div className="oauth-section" style={{ marginTop: '20px' }}>
+                <button
+                    onClick={handleGoogleSignup}
+                    className="btn btn-danger"
+                    style={{ width: '100%' }}
+                >
+                    Register with Google
+                </button>
+            </div>
+
             <p className="my-1">
                 Already have an account? <Link to="/login">Sign In</Link>
             </p>

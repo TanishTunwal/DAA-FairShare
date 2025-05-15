@@ -1,19 +1,27 @@
 import { useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import AuthContext from '../../context/AuthContext';
 
 const Navbar = () => {
     const { isAuthenticated, setUser, setIsAuthenticated } = useContext(AuthContext);
-    const navigate = useNavigate();
+    const navigate = useNavigate(); const handleLogout = async () => {
+        try {
+            // Configure axios to send cookies with request
+            axios.defaults.withCredentials = true;
 
-    const handleLogout = () => {
-        // Clear user data and token
-        localStorage.removeItem('token');
-        setUser(null);
-        setIsAuthenticated(false);
+            // Call the server logout endpoint
+            await axios.get('/users/logout');
 
-        // Redirect to login
-        navigate('/login');
+            // Clear user data
+            setUser(null);
+            setIsAuthenticated(false);
+
+            // Redirect to login
+            navigate('/login');
+        } catch (err) {
+            console.error('Logout error:', err);
+        }
     };
 
     const authLinks = (

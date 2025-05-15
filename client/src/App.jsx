@@ -26,29 +26,25 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [socket, setSocket] = useState(null);
-
   // Load user on initial render
   useEffect(() => {
     const loadUser = async () => {
-      const token = localStorage.getItem('token');
+      try {
+        // Use credentials to make requests
+        axios.defaults.withCredentials = true;
 
-      if (token) {
-        // Set auth token header
-        axios.defaults.headers.common['x-auth-token'] = token;
+        // Get user profile
+        const res = await axios.get('/users/profile');
+        setUser(res.data);
+        setIsAuthenticated(true);
 
-        try {
-          const res = await axios.get('/users/profile');
-          setUser(res.data);
-          setIsAuthenticated(true);
-
-          // Connect to socket
-          const socketInstance = io('http://localhost:5000');
-          setSocket(socketInstance);
-        } catch (err) {
-          console.error('Error loading user:', err);
-          localStorage.removeItem('token');
-          delete axios.defaults.headers.common['x-auth-token'];
-        }
+        // Connect to socket
+        const socketInstance = io('http://localhost:5000');
+        setSocket(socketInstance);
+      } catch (err) {
+        console.error('Error loading user:', err);
+        setIsAuthenticated(false);
+        setUser(null);
       }
 
       setLoading(false);
