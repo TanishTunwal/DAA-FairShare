@@ -4,7 +4,7 @@ import axios from 'axios';
 import * as d3 from 'd3';
 
 const SettlementPlan = () => {
-    const { groupId  } = useParams();
+    const { groupId } = useParams();
     const [group, setGroup] = useState(null);
     const [settlements, setSettlements] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -40,20 +40,36 @@ const SettlementPlan = () => {
         if (!loading && settlements.length > 0 && graphRef.current) {
             createGraph();
         }
-    }, [loading, settlements]);
-
-    const createGraph = () => {
+    }, [loading, settlements]); const createGraph = () => {
         // Clear previous graph
         d3.select(graphRef.current).selectAll('*').remove();
 
-        const width = 600;
+        // Fixed dimensions for the graph
+        const width = 500;
         const height = 400;
 
+        // Container with border
+        const container = d3.select(graphRef.current)
+            .style('width', `${width}px`)
+            .style('height', `${height}px`)
+            .style('margin', '0 auto')
+            .style('border', '1px solid #ddd')
+            .style('border-radius', '8px')
+            .style('overflow', 'hidden')
+            .style('background', '#f9f9f9');
+
         // Create SVG
-        const svg = d3.select(graphRef.current)
+        const svg = container
             .append('svg')
             .attr('width', width)
-            .attr('height', height);
+            .attr('height', height)
+            .style('display', 'block');
+
+        // Add a background
+        svg.append('rect')
+            .attr('width', width)
+            .attr('height', height)
+            .attr('fill', '#f9f9f9');
 
         // Create nodes (users)
         const nodes = [];
@@ -76,95 +92,167 @@ const SettlementPlan = () => {
         const links = settlements.map(settlement => ({
             source: settlement.from.id,
             target: settlement.to.id,
-            value: settlement.amount
+            value: settlement.amount,
+            amount: settlement.amount
         }));
+
+        // Calculate max amount for normalized line thickness
+        const maxAmount = Math.max(...links.map(link => link.amount), 1);
 
         // Create force simulation
         const simulation = d3.forceSimulation(nodes)
-            .force('link', d3.forceLink(links).id(d => d.id).distance(100))
-            .force('charge', d3.forceManyBody().strength(-300))
+            .force('link', d3.forceLink(links).id(d => d.id).distance(150))
+            .force('charge', d3.forceManyBody().strength(-500))
             .force('center', d3.forceCenter(width / 2, height / 2))
-            .on('tick', ticked);
-
-        // Create links
+            .force('collision', d3.forceCollide().radius(40)) // Prevent overlapping
+            .on('tick', ticked);        // Create links with uniform thickness regardless of amount
         const link = svg.append('g')
             .selectAll('line')
             .data(links)
             .enter()
             .append('line')
-            .attr('stroke', '#999')
-            .attr('stroke-width', d => Math.sqrt(d.value) / 2);
-
-        // Create nodes
+            .attr('stroke', '#666')
+            .attr('stroke-width', 2); // Fixed thickness for all links// Create nodes with improved styling
         const node = svg.append('g')
             .selectAll('circle')
             .data(nodes)
             .enter()
             .append('circle')
-            .attr('r', 10)
-            .attr('fill', '#69b3a2')
+            .attr('r', 25) // Fixed size for nodes
+            .attr('fill', '#4CAF50')
+            .attr('stroke', '#388E3C')
+            .attr('stroke-width', 2)
+            .style('cursor', 'grab')
             .call(d3.drag()
                 .on('start', dragstarted)
                 .on('drag', dragged)
                 .on('end', dragended));
 
-        // Add labels
-        const label = svg.append('g')
+        // Add user initials in nodes
+        const nodeLabels = svg.append('g')
+            .selectAll('text')
+            .data(nodes)
+            .enter()
+            .append('text')
+            .text(d => getInitials(d.name))
+            .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'central')
+            .attr('font-size', '12px')
+            .attr('font-weight', 'bold')
+            .attr('fill', 'white');
+
+        // Add name labels outside nodes
+        const nameLabels = svg.append('g')
             .selectAll('text')
             .data(nodes)
             .enter()
             .append('text')
             .text(d => d.name)
             .attr('font-size', 12)
-            .attr('dx', 15)
-            .attr('dy', 4);
+            .attr('text-anchor', 'middle')
+            .attr('dy', 40)
+            .attr('fill', '#333');
 
-        // Add arrows for direction
+        // Add arrows for direction with consistent size
         svg.append('defs').selectAll('marker')
-            .data(links)
+            .data(['arrow']) // Use just one arrow style
             .enter()
             .append('marker')
-            .attr('id', (d, i) => `arrow-${i}`)
+            .attr('id', 'arrow-marker')
             .attr('viewBox', '0 -5 10 10')
-            .attr('refX', 20)
+            .attr('refX', 35) // Position relative to node
             .attr('refY', 0)
             .attr('markerWidth', 6)
             .attr('markerHeight', 6)
             .attr('orient', 'auto')
             .append('path')
             .attr('d', 'M0,-5L10,0L0,5')
-            .attr('fill', '#999');
+            .attr('fill', '#666');
 
-        link.attr('marker-end', (d, i) => `url(#arrow-${i})`);
+        // Apply the arrow marker to all links
+        link.attr('marker-end', 'url(#arrow-marker)');
 
-        // Add amount labels
+        // Add amount labels with better positioning and background
         const linkLabels = svg.append('g')
-            .selectAll('text')
+            .selectAll('g')
             .data(links)
             .enter()
-            .append('text')
-            .text(d => `Rs. ${d.value.toFixed(2)}`)
-            .attr('font-size', 10)
-            .attr('fill', '#333');
+            .append('g');
 
-        function ticked() {
+        // Background rectangle for amount labels
+        linkLabels.append('rect')
+            .attr('fill', 'white')
+            .attr('stroke', '#ddd')
+            .attr('rx', 4)
+            .attr('ry', 4)
+            .attr('opacity', 0.8);
+
+        // Amount text
+        const amountTexts = linkLabels.append('text')
+            .text(d => `₹${d.amount.toFixed(0)}`)
+            .attr('font-size', 10)
+            .attr('fill', '#333')
+            .attr('text-anchor', 'middle');        // Function to get initials from name
+        function getInitials(name) {
+            if (!name) return "?";
+            return name
+                .split(' ')
+                .map(part => part[0])
+                .join('')
+                .toUpperCase()
+                .substring(0, 2);
+        } function ticked() {
+            // Update link positions
             link
                 .attr('x1', d => d.source.x)
                 .attr('y1', d => d.source.y)
                 .attr('x2', d => d.target.x)
                 .attr('y2', d => d.target.y);
 
+            // Update node positions
             node
                 .attr('cx', d => d.x)
                 .attr('cy', d => d.y);
 
-            label
+            // Update node initial labels
+            nodeLabels
                 .attr('x', d => d.x)
                 .attr('y', d => d.y);
 
-            linkLabels
-                .attr('x', d => (d.source.x + d.target.x) / 2)
-                .attr('y', d => (d.source.y + d.target.y) / 2);
+            // Update name labels
+            nameLabels
+                .attr('x', d => d.x)
+                .attr('y', d => d.y);
+
+            // Update link label positions
+            linkLabels.attr('transform', d => {
+                // Position at midpoint of the link
+                const x = (d.source.x + d.target.x) / 2;
+                const y = (d.source.y + d.target.y) / 2;
+
+                // Calculate offset based on link angle for better positioning
+                const dx = d.target.x - d.source.x;
+                const dy = d.target.y - d.source.y;
+                const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
+                return `translate(${x}, ${y}) rotate(${angle})`;
+            });
+
+            // Calculate and adjust the size of the label background rectangles
+            linkLabels.selectAll('rect')
+                .each(function (d) {
+                    const text = d3.select(this.parentNode).select('text');
+                    const bbox = text.node().getBBox();
+                    d3.select(this)
+                        .attr('x', bbox.x - 5)
+                        .attr('y', bbox.y - 2)
+                        .attr('width', bbox.width + 10)
+                        .attr('height', bbox.height + 4);
+                });
+
+            // Adjust position of amount text
+            amountTexts
+                .attr('transform', 'rotate(0)'); // Keep text horizontal
         }
 
         function dragstarted(event, d) {
@@ -198,34 +286,59 @@ const SettlementPlan = () => {
             <h1>Settlement Plan</h1>
             <p>Group: {group && group.name}</p>
 
-            {error && <div className="alert alert-danger">{error}</div>}
-
-            <div className="settlement-content">
+            {error && <div className="alert alert-danger">{error}</div>}            <div className="settlement-content">
                 {settlements.length === 0 ? (
                     <p>No settlements needed! Everyone is settled up.</p>
                 ) : (
                     <>
-                        <div className="settlement-list">
+                        <div className="settlement-list" style={{
+                            backgroundColor: 'white',
+                            padding: '1.5rem',
+                            borderRadius: '8px',
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+                            marginBottom: '2rem'
+                        }}>
                             <h3>Optimal Settlement Plan</h3>
-                            <p className="settlement-explanation">
+                            <p className="settlement-explanation" style={{ marginBottom: '1.5rem', color: '#666' }}>
                                 This plan uses graph algorithms to minimize the number of transactions needed to settle all debts.
                             </p>
-                            <ul>
+                            <ul style={{ listStyleType: 'none', padding: 0 }}>
                                 {settlements.map((settlement, index) => (
-                                    <li key={index} className="settlement-item">
-                                        <strong>{settlement.from.name}</strong> pays <strong>Rs. {settlement.amount.toFixed(2)}</strong> to <strong>{settlement.to.name}</strong>
+                                    <li key={index} className="settlement-item" style={{
+                                        padding: '12px 15px',
+                                        margin: '8px 0',
+                                        backgroundColor: '#f8f9fa',
+                                        borderRadius: '6px',
+                                        border: '1px solid #e9ecef',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                                            <span style={{ fontWeight: 'bold' }}>{settlement.from.name}</span>
+                                            <span style={{ margin: '0 10px', color: '#666' }}>pays</span>
+                                            <span style={{ fontWeight: 'bold', color: '#28a745' }}>₹{settlement.amount.toFixed(2)}</span>
+                                            <span style={{ margin: '0 10px', color: '#666' }}>to</span>
+                                            <span style={{ fontWeight: 'bold' }}>{settlement.to.name}</span>
+                                        </div>
                                     </li>
                                 ))}
                             </ul>
-                        </div>
-
-                        <div className="settlement-graph">
+                        </div>                        <div className="settlement-graph" style={{
+                            backgroundColor: 'white',
+                            padding: '1.5rem',
+                            borderRadius: '8px',
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center'
+                        }}>
                             <h3>Debt Graph Visualization</h3>
-                            <p className="graph-explanation">
+                            <p className="graph-explanation" style={{ marginBottom: '1.5rem', color: '#666' }}>
                                 This graph shows who owes money to whom. Arrows indicate the direction of payment.
                             </p>
                             <div className="graph-container" ref={graphRef}></div>
-                            <p className="graph-instructions">
+                            <p className="graph-instructions" style={{ marginTop: '1rem', color: '#666', fontStyle: 'italic' }}>
                                 <small>You can drag the nodes to rearrange the graph.</small>
                             </p>
                         </div>

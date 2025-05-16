@@ -13,6 +13,16 @@ router.post('/', auth, groupController.createGroup);
 // @access  Private
 router.get('/', auth, groupController.getUserGroups);
 
+// @route   GET /api/groups/invitations
+// @desc    Get all pending invitations for a user
+// @access  Private
+router.get('/invitations', auth, groupController.getUserInvitations);
+
+// @route   POST /api/groups/invitations/respond
+// @desc    Respond to a group invitation
+// @access  Private
+router.post('/invitations/respond', auth, groupController.respondToInvitation);
+
 // @route   GET /api/groups/:id
 // @desc    Get a single group by ID
 // @access  Private
@@ -33,4 +43,9 @@ router.delete('/:id/members/:userId', auth, groupController.removeMember);
 // @access  Private
 router.delete('/:id', auth, groupController.deleteGroup);
 
-module.exports = router; 
+// @route   POST /api/groups/:id/leave
+// @desc    Leave a group
+// @access  Private
+router.post('/:id/leave', auth, groupController.leaveGroup);
+
+module.exports = router;

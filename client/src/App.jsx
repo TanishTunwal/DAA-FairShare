@@ -31,9 +31,7 @@ function App() {
     const loadUser = async () => {
       try {
         // Use credentials to make requests
-        axios.defaults.withCredentials = true;
-
-        // Get user profile
+        axios.defaults.withCredentials = true;        // Get user profile
         const res = await axios.get('/users/profile');
         setUser(res.data);
         setIsAuthenticated(true);
@@ -41,6 +39,11 @@ function App() {
         // Connect to socket
         const socketInstance = io('http://localhost:5000');
         setSocket(socketInstance);
+
+        // Register user with socket
+        if (res.data && res.data._id) {
+          socketInstance.emit('register_user', res.data._id);
+        }
       } catch (err) {
         console.error('Error loading user:', err);
         setIsAuthenticated(false);

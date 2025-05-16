@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import AuthContext from '../../context/AuthContext';
+import GroupInvitations from '../groups/GroupInvitations';
 
 const Dashboard = () => {
     const { user, socket } = useContext(AuthContext);
@@ -24,9 +25,7 @@ const Dashboard = () => {
         };
 
         fetchGroups();
-    }, []);
-
-    // Listen for real-time updates
+    }, []);    // Listen for real-time updates
     useEffect(() => {
         if (socket) {
             // Listen for new expense notifications
@@ -45,13 +44,32 @@ const Dashboard = () => {
             socket.on('group_deleted', (data) => {
                 setGroups(prevGroups => prevGroups.filter(group => group._id !== data.groupId));
             });
-        }
 
-        return () => {
+            // Listen for group invitations
+            socket.on('group_invitation', (data) => {
+                // Show a browser notification if supported
+                if ('Notification' in window) {
+                    if (Notification.permission === 'granted') {
+                        new Notification('New Group Invitation', {
+                            body: data.message
+                        });
+                    } else if (Notification.permission !== 'denied') {
+                        Notification.requestPermission().then(permission => {
+                            if (permission === 'granted') {
+                                new Notification('New Group Invitation', {
+                                    body: data.message
+                                });
+                            }
+                        });
+                    }
+                }
+            });
+        } return () => {
             if (socket) {
                 socket.off('expense_added');
                 socket.off('settlement_update');
                 socket.off('group_deleted');
+                socket.off('group_invitation');
             }
         };
     }, [socket]);
@@ -79,12 +97,25 @@ const Dashboard = () => {
 
     return (
         <section className="container">
-            <h1 className="large">Dashboard</h1>
-            <p className="lead">
+            <h1 className="large">Dashboard</h1>            <p className="lead">
                 <i className="fas fa-user"></i> Welcome {user && user.name}
             </p>
 
             {error && <div className="alert alert-danger">{error}</div>}
+
+            {/* Display Group Invitations */}
+            <GroupInvitations onInvitationResponded={() => {
+                // Refresh groups list after accepting/declining an invitation
+                const fetchGroups = async () => {
+                    try {
+                        const res = await axios.get('/groups');
+                        setGroups(res.data);
+                    } catch (err) {
+                        console.error('Error fetching groups:', err);
+                    }
+                };
+                fetchGroups();
+            }} />
 
             <div className="dashboard-actions">
                 <Link to="/groups/create" className="btn btn-primary">

@@ -56,9 +56,19 @@ const io = new Server(server, {
     }
 });
 
+// Make io available to route handlers
+app.set('io', io);
+
 // Socket.io connection
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
+
+    // Store user ID for this socket
+    socket.on('register_user', (userId) => {
+        socket.userId = userId;
+        socket.join(`user_${userId}`); // Join a personal room
+        console.log(`User ${userId} registered with socket ${socket.id}`);
+    });
 
     // Join a group room
     socket.on('join_group', (groupId) => {
@@ -85,11 +95,14 @@ io.on('connection', (socket) => {
     // Expense deleted
     socket.on('expense_deleted', (data) => {
         socket.to(data.groupId).emit('expense_deleted', data);
-    });
-
-    // Member removed
+    });    // Member removed
     socket.on('member_removed', (data) => {
         socket.to(data.groupId).emit('member_removed', data);
+    });
+
+    // Member left
+    socket.on('member_left', (data) => {
+        socket.to(data.groupId).emit('member_left', data);
     });
 
     // Group deleted

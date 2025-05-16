@@ -2,6 +2,7 @@ import { useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import AuthContext from '../../context/AuthContext';
+import InvitationBadge from './InvitationBadge';
 
 const Navbar = () => {
     const { isAuthenticated, setUser, setIsAuthenticated } = useContext(AuthContext);
@@ -22,12 +23,13 @@ const Navbar = () => {
         } catch (err) {
             console.error('Logout error:', err);
         }
-    };
-
-    const authLinks = (
+    }; const authLinks = (
         <ul>
             <li>
-                <Link to="/dashboard">Dashboard</Link>
+                <Link to="/dashboard">
+                    Dashboard
+                    <InvitationBadge />
+                </Link>
             </li>
             <li>
                 <a href="#!" onClick={handleLogout}>
